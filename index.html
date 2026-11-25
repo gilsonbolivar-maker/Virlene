@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PsicoVirlene · Apoio à Anamnese (DSM-5)</title>
+<style>
+:root{
+  --bg:#f6f4fa; --card:#ffffff; --ink:#2b2540; --muted:#6c6684; --line:#e4e0ee;
+  --pri:#6b4fa8; --pri-soft:#efe9fa; --ok:#1f8a5b; --ok-soft:#e3f4ec;
+  --warn:#b7791f; --warn-soft:#fdf3e1; --bad:#9b9bb0; --bad-soft:#f0f0f5;
+  --risk:#c0392b; --risk-soft:#fdecea; --radius:14px;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);line-height:1.45}
+header{background:var(--pri);color:#fff;padding:16px 20px}
+header h1{margin:0;font-size:1.15rem;font-weight:650}
+header p{margin:2px 0 0;font-size:.85rem;opacity:.85}
+main{max-width:860px;margin:0 auto;padding:16px}
+.stepper{display:flex;gap:6px;margin:4px 0 16px;flex-wrap:wrap}
+.stepper button{flex:1;min-width:120px;border:2px solid var(--line);background:var(--card);border-radius:999px;padding:8px 10px;font-size:.85rem;color:var(--muted);cursor:pointer}
+.stepper button.on{border-color:var(--pri);background:var(--pri-soft);color:var(--pri);font-weight:650}
+.stepper button.done{border-color:var(--ok);color:var(--ok)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin-bottom:14px}
+.card h2{margin:0 0 4px;font-size:1.1rem}
+.card h3{margin:16px 0 6px;font-size:.98rem;color:var(--pri)}
+.hint{color:var(--muted);font-size:.88rem;margin:0 0 12px}
+label.f{display:block;font-size:.85rem;font-weight:600;margin:10px 0 4px}
+input[type=text],input[type=number],input[type=date],textarea{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font:inherit;background:#fff}
+textarea{min-height:80px;resize:vertical}
+.row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.gate{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 0;border-bottom:1px solid var(--line)}
+.gate:last-child{border-bottom:0}
+.gate .q{flex:1;font-size:.95rem}
+.gate .q small{display:block;color:var(--muted);font-size:.78rem}
+.seg{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;flex-shrink:0}
+.seg button{border:0;background:#fff;padding:8px 12px;font-size:.85rem;cursor:pointer;color:var(--muted)}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button.on[data-v=sim]{background:var(--pri);color:#fff}
+.seg button.on[data-v=talvez]{background:var(--warn-soft);color:var(--warn);font-weight:650}
+.seg button.on[data-v=nao]{background:var(--bad-soft);color:var(--ink)}
+.gate.risk .q{color:var(--risk);font-weight:600}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 10px;font-size:.8rem;cursor:pointer;color:var(--muted)}
+.chip.on{background:var(--pri);border-color:var(--pri);color:#fff}
+.chip.ok{border-color:var(--ok);color:var(--ok)}
+.chip.on.ok{background:var(--ok);color:#fff}
+.block{border:1px solid var(--line);border-radius:12px;padding:12px;margin:10px 0}
+.block .bt{display:flex;justify-content:space-between;gap:8px;font-weight:600;font-size:.92rem;margin-bottom:6px}
+.count{font-size:.8rem;padding:2px 8px;border-radius:999px;background:var(--bad-soft);color:var(--muted);white-space:nowrap;align-self:flex-start}
+.count.met{background:var(--ok-soft);color:var(--ok)}
+.chk{display:flex;gap:10px;align-items:flex-start;padding:7px 4px;border-radius:8px;cursor:pointer;font-size:.92rem}
+.chk:hover{background:var(--pri-soft)}
+.chk input{margin-top:3px;width:18px;height:18px;accent-color:var(--pri);flex-shrink:0}
+.chk.riskitem{color:var(--risk)}
+.req{background:var(--pri-soft);border-color:transparent}
+.flag{background:var(--warn-soft);border-color:transparent}
+.ref{font-size:.8rem;color:var(--muted)}
+.nav{display:flex;justify-content:space-between;gap:10px;margin-top:6px}
+.btn{border:0;border-radius:10px;padding:11px 18px;font:inherit;font-weight:600;cursor:pointer;background:var(--pri);color:#fff}
+.btn.sec{background:#fff;color:var(--pri);border:1px solid var(--pri)}
+.btn.ghost{background:transparent;color:var(--muted);border:1px solid var(--line)}
+.alert{border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:.92rem}
+.alert.risk{background:var(--risk-soft);color:var(--risk);border:1px solid #f3c1bb}
+.alert.info{background:var(--pri-soft);color:var(--ink)}
+.res{border-left:6px solid var(--bad);}
+.res.s3{border-left-color:var(--ok)} .res.s2{border-left-color:var(--pri)} .res.s1{border-left-color:var(--warn)}
+.badge{display:inline-block;font-size:.78rem;font-weight:650;padding:3px 10px;border-radius:999px;margin-bottom:6px}
+.s3 .badge{background:var(--ok-soft);color:var(--ok)} .s2 .badge{background:var(--pri-soft);color:var(--pri)}
+.s1 .badge{background:var(--warn-soft);color:var(--warn)} .s0 .badge{background:var(--bad-soft);color:var(--muted)}
+.bar{height:8px;background:var(--bad-soft);border-radius:999px;overflow:hidden;margin:8px 0}
+.bar i{display:block;height:100%;background:var(--pri)}
+.s3 .bar i{background:var(--ok)}
+ul.mini{margin:6px 0 0;padding-left:18px;font-size:.88rem}
+ul.mini li{margin:2px 0}
+.miss{color:var(--warn)}
+pre#rel{white-space:pre-wrap;background:#faf9fd;border:1px solid var(--line);border-radius:10px;padding:12px;font-size:.85rem;max-height:420px;overflow:auto}
+footer{max-width:860px;margin:0 auto;padding:4px 16px 30px;color:var(--muted);font-size:.78rem}
+.hidden{display:none}
+@media print{header,.stepper,.nav,.noprint,footer{display:none!important} body{background:#fff} .card{border:0}}
+</style>
+</head>
+<body>
+<header>
+  <h1>PsicoVirlene · Apoio à Anamnese</h1>
+  <p>Levantamento de hipóteses com base nos critérios do DSM-5</p>
+</header>
+
+<main>
+  <div class="alert info noprint" id="aviso">
+    <b>Ferramenta de apoio clínico.</b> Ela organiza observações e indica hipóteses a investigar. Não emite diagnóstico: a conclusão é sempre da psicóloga. Os critérios aparecem resumidos; confirme no DSM-5 pela página indicada. Nenhum dado sai deste aparelho e nada fica salvo ao fechar a página.
+  </div>
+
+  <nav class="stepper" id="stepper"></nav>
+  <section id="view"></section>
+</main>
+
+<footer>Desenvolvido por Gilson Bolivar · Desenvolvedor Digital. Páginas de referência: DSM-5, 5ª edição, Artmed, 2014.</footer>
+
+<script>
+/* ============================================================
+   BASE DE CRITÉRIOS (resumos próprios dos critérios do DSM-5)
+   pag = página do DSM-5 (Artmed, 2014) onde estão os critérios
+   Bloco: min = nº mínimo de itens; "todos" = todos os itens;
+          umDe = índices dos quais ao menos um precisa estar marcado
+   logica: "todos" (todos os blocos) ou "algum" (basta um bloco)
+   ============================================================ */
+const HIP = [
+{ id:"tdm", nome:"Transtorno depressivo maior", grupo:"Humor", pag:"160–161",
+  blocos:[{t:"A. Sintomas no mesmo período de 2 semanas", min:5, umDe:[0,1], itens:[
+    "Humor deprimido na maior parte do dia, quase todos os dias (relato ou observação)",
+    "Perda acentuada de interesse ou prazer em quase todas as atividades",
+    "Alteração importante de peso ou de apetite, sem dieta",
+    "Insônia ou sono excessivo quase todos os dias",
+    "Agitação ou lentificação psicomotora perceptível por outras pessoas",
+    "Fadiga ou perda de energia quase todos os dias",
+    "Sentimento de inutilidade ou culpa excessiva ou inadequada",
+    "Dificuldade de pensar, de se concentrar ou indecisão",
+    {t:"Pensamentos recorrentes de morte, ideação suicida, plano ou tentativa", risco:true}
+  ]}],
+  req:["Sintomas causam sofrimento significativo ou prejuízo no funcionamento",
+       "Não se devem a substância ou a outra condição médica",
+       "Não são mais bem explicados por transtorno do espectro da esquizofrenia",
+       "Nunca houve episódio maníaco ou hipomaníaco"]},
+
+{ id:"dist", nome:"Transtorno depressivo persistente (distimia)", grupo:"Humor", pag:"168",
+  blocos:[
+   {t:"A. Humor deprimido", min:"todos", itens:["Humor deprimido na maior parte do dia, na maioria dos dias, por pelo menos 2 anos"]},
+   {t:"B. Presença de dois ou mais", min:2, itens:[
+    "Apetite diminuído ou excessivo","Insônia ou sono excessivo","Baixa energia ou fadiga",
+    "Baixa autoestima","Concentração fraca ou dificuldade para decidir","Sentimentos de desesperança"]}],
+  req:["Nesses 2 anos, nunca ficou mais de 2 meses seguidos sem os sintomas",
+       "Nunca houve episódio maníaco ou hipomaníaco",
+       "Não se deve a substância ou condição médica",
+       "Causa sofrimento significativo ou prejuízo"]},
+
+{ id:"bp1", nome:"Transtorno bipolar tipo I (episódio maníaco)", grupo:"Humor", pag:"123–124",
+  flags:[{id:"irrit", t:"O humor é apenas irritável (nesse caso são exigidos 4 itens no bloco B)"}],
+  blocos:[
+   {t:"A. Período distinto", min:"todos", itens:["Humor anormalmente elevado, expansivo ou irritável, com aumento de energia ou atividade, por pelo menos 1 semana, quase todo o dia (ou qualquer duração se houve internação)"]},
+   {t:"B. Durante o período", min:ctx=>ctx.flags.irrit?4:3, itens:[
+    "Autoestima inflada ou grandiosidade","Menor necessidade de sono (descansado com poucas horas)",
+    "Mais falante que o habitual ou pressão para continuar falando","Fuga de ideias ou pensamentos acelerados",
+    "Distratibilidade","Aumento de atividade dirigida a objetivos ou agitação psicomotora",
+    "Envolvimento excessivo em atividades de risco (gastos, sexo, negócios impulsivos)"]}],
+  req:["Prejuízo acentuado no funcionamento, OU necessidade de internação, OU sintomas psicóticos",
+       "Não se deve a substância ou condição médica"]},
+
+{ id:"bp2", nome:"Transtorno bipolar tipo II (hipomania + depressão)", grupo:"Humor", pag:"132–134",
+  flags:[{id:"irrit", t:"O humor é apenas irritável (nesse caso são exigidos 4 itens no bloco B)"}],
+  blocos:[
+   {t:"A. Período distinto", min:"todos", itens:["Humor elevado, expansivo ou irritável, com aumento de energia, por pelo menos 4 dias consecutivos"]},
+   {t:"B. Durante o período", min:ctx=>ctx.flags.irrit?4:3, itens:[
+    "Autoestima inflada ou grandiosidade","Menor necessidade de sono",
+    "Mais falante que o habitual","Fuga de ideias ou pensamentos acelerados",
+    "Distratibilidade","Aumento de atividade dirigida a objetivos ou agitação",
+    "Envolvimento excessivo em atividades de risco"]}],
+  req:["Pelo menos um episódio depressivo maior atual ou passado",
+       "Nunca houve episódio maníaco completo",
+       "A mudança foi percebida por outras pessoas, sem prejuízo acentuado nem internação",
+       "Não se deve a substância ou condição médica"]},
+
+{ id:"tag", nome:"Transtorno de ansiedade generalizada", grupo:"Ansiedade", pag:"222",
+  blocos:[
+   {t:"A–B. Preocupação", min:"todos", itens:[
+    "Ansiedade e preocupação excessivas sobre vários assuntos, na maioria dos dias, por pelo menos 6 meses",
+    "Dificuldade de controlar a preocupação"]},
+   {t:"C. Três ou mais sintomas", min:3, itens:[
+    "Inquietação ou sensação de estar com os nervos à flor da pele","Cansa-se com facilidade",
+    "Dificuldade de concentração ou 'branco' na mente","Irritabilidade","Tensão muscular",
+    "Perturbação do sono"]}],
+  req:["Causa sofrimento significativo ou prejuízo","Não se deve a substância ou condição médica",
+       "Não é mais bem explicado por outro transtorno mental"]},
+
+{ id:"pan", nome:"Transtorno de pânico", grupo:"Ansiedade", pag:"208",
+  blocos:[
+   {t:"A. Ataques", min:"todos", itens:["Ataques de pânico recorrentes e inesperados (surto súbito de medo intenso que atinge o pico em minutos)"]},
+   {t:"Sintomas no ataque (quatro ou mais)", min:4, itens:[
+    "Palpitações ou coração acelerado","Sudorese","Tremores","Falta de ar ou sufocamento",
+    "Sensação de asfixia","Dor ou desconforto no peito","Náusea ou desconforto abdominal",
+    "Tontura, instabilidade ou sensação de desmaio","Calafrios ou ondas de calor",
+    "Formigamento ou dormência","Desrealização ou despersonalização",
+    "Medo de perder o controle ou enlouquecer","Medo de morrer"]}],
+  req:["Por 1 mês ou mais após um ataque: preocupação persistente com novos ataques OU mudança de comportamento para evitá-los",
+       "Não se deve a substância ou condição médica",
+       "Não é mais bem explicado por outro transtorno mental"]},
+
+{ id:"soc", nome:"Transtorno de ansiedade social", grupo:"Ansiedade", pag:"202",
+  blocos:[{t:"Núcleo do quadro", min:"todos", itens:[
+    "Medo ou ansiedade acentuados em situações sociais com possível avaliação por outros",
+    "Medo de agir de modo a ser avaliado negativamente (humilhação, rejeição)",
+    "As situações sociais quase sempre provocam medo ou ansiedade",
+    "As situações são evitadas ou suportadas com intenso sofrimento",
+    "O medo é desproporcional à ameaça real e ao contexto"]}],
+  req:["Duração de 6 meses ou mais","Causa sofrimento significativo ou prejuízo",
+       "Não se deve a substância, condição médica ou outro transtorno mental"]},
+
+{ id:"toc", nome:"Transtorno obsessivo-compulsivo", grupo:"Obsessivo-compulsivo", pag:"237",
+  blocos:[{t:"A. Obsessões, compulsões ou ambas", min:1, itens:[
+    "Obsessões: pensamentos, impulsos ou imagens intrusivos e indesejados, que causam ansiedade e que a pessoa tenta ignorar ou neutralizar",
+    "Compulsões: comportamentos ou atos mentais repetitivos feitos para reduzir a ansiedade ou evitar algo temido"]}],
+  req:["Consomem tempo (mais de 1 hora por dia) ou causam sofrimento ou prejuízo",
+       "Não se devem a substância ou condição médica",
+       "Não são mais bem explicados por outro transtorno mental"]},
+
+{ id:"tept", nome:"Transtorno de estresse pós-traumático", grupo:"Trauma e estressores", pag:"271–272",
+  blocos:[
+   {t:"A. Exposição", min:"todos", itens:["Exposição a morte, ameaça de morte, lesão grave ou violência sexual (vivida, testemunhada, ocorrida com pessoa próxima ou por exposição repetida a detalhes)"]},
+   {t:"B. Intrusão (um ou mais)", min:1, itens:[
+    "Lembranças intrusivas e angustiantes","Sonhos angustiantes recorrentes",
+    "Reações dissociativas, como flashbacks","Sofrimento intenso diante de lembretes",
+    "Reações físicas intensas diante de lembretes"]},
+   {t:"C. Evitação (um ou mais)", min:1, itens:[
+    "Evita lembranças, pensamentos ou sentimentos ligados ao evento",
+    "Evita pessoas, lugares ou situações que lembram o evento"]},
+   {t:"D. Cognição e humor negativos (dois ou mais)", min:2, itens:[
+    "Não consegue lembrar aspecto importante do evento","Crenças negativas persistentes sobre si, os outros ou o mundo",
+    "Culpa distorcida de si ou dos outros pelo evento","Estado emocional negativo persistente (medo, raiva, culpa, vergonha)",
+    "Interesse muito diminuído em atividades","Sensação de distanciamento dos outros",
+    "Incapacidade persistente de sentir emoções positivas"]},
+   {t:"E. Excitação e reatividade (dois ou mais)", min:2, itens:[
+    "Irritabilidade ou explosões de raiva","Comportamento imprudente ou autodestrutivo",
+    "Hipervigilância","Sobressalto exagerado","Dificuldade de concentração","Perturbação do sono"]}],
+  req:["Duração de mais de 1 mês","Causa sofrimento significativo ou prejuízo",
+       "Não se deve a substância ou condição médica"]},
+
+{ id:"tdah", nome:"TDAH (transtorno de déficit de atenção/hiperatividade)", grupo:"Neurodesenvolvimento", pag:"59–60",
+  logica:"algum", nota:"Exige 6 sintomas em um dos blocos (5 a partir de 17 anos), por pelo menos 6 meses.",
+  blocos:[
+   {t:"1. Desatenção", min:ctx=>ctx.idade>=17?5:6, itens:[
+    "Não presta atenção a detalhes ou comete erros por descuido","Dificuldade de manter a atenção em tarefas",
+    "Parece não escutar quando falam diretamente","Não segue instruções até o fim e não termina tarefas",
+    "Dificuldade para organizar tarefas e atividades","Evita tarefas que exigem esforço mental prolongado",
+    "Perde objetos necessários","Distrai-se facilmente com estímulos externos","Esquece atividades do dia a dia"]},
+   {t:"2. Hiperatividade e impulsividade", min:ctx=>ctx.idade>=17?5:6, itens:[
+    "Remexe mãos ou pés, ou se contorce na cadeira","Levanta-se quando deveria ficar sentado",
+    "Corre ou sobe em coisas (em adultos: sensação de inquietude)","Dificuldade de fazer lazer com calma",
+    "Está sempre 'a mil', como se movido por um motor","Fala demais",
+    "Responde antes de a pergunta terminar","Dificuldade de esperar a vez","Interrompe ou se intromete"]}],
+  req:["Vários sintomas presentes antes dos 12 anos","Sintomas presentes em dois ou mais ambientes (casa, trabalho, escola)",
+       "Interferem ou reduzem a qualidade do funcionamento","Não são mais bem explicados por outro transtorno mental"]},
+
+{ id:"tea", nome:"Transtorno do espectro autista", grupo:"Neurodesenvolvimento", pag:"50–51",
+  nota:"Se compatível, especificar o nível de suporte (1, 2 ou 3) para cada domínio.",
+  blocos:[
+   {t:"A. Comunicação e interação social (todos)", min:"todos", itens:[
+    "Déficits na reciprocidade socioemocional","Déficits na comunicação não verbal usada na interação",
+    "Déficits para desenvolver, manter e compreender relacionamentos"]},
+   {t:"B. Padrões restritos e repetitivos (dois ou mais)", min:2, itens:[
+    "Movimentos, fala ou uso de objetos estereotipados ou repetitivos","Insistência na mesmice, rotinas ou rituais rígidos",
+    "Interesses fixos e restritos, de intensidade ou foco anormais","Hiper ou hiporreatividade a estímulos sensoriais"]}],
+  req:["Sintomas presentes no início do desenvolvimento (podem ficar evidentes só mais tarde)",
+       "Causam prejuízo significativo no funcionamento","Não são mais bem explicados por deficiência intelectual"]},
+
+{ id:"bord", nome:"Transtorno da personalidade borderline", grupo:"Personalidade", pag:"663",
+  blocos:[{t:"Cinco ou mais", min:5, itens:[
+    "Esforços desesperados para evitar abandono real ou imaginado","Relações instáveis e intensas, entre idealização e desvalorização",
+    "Perturbação da identidade: autoimagem instável","Impulsividade em pelo menos duas áreas potencialmente autodestrutivas",
+    {t:"Comportamento, gestos ou ameaças suicidas recorrentes, ou automutilação", risco:true},
+    "Instabilidade afetiva por forte reatividade do humor","Sentimento crônico de vazio",
+    "Raiva intensa e inadequada ou dificuldade de controlá-la","Ideação paranoide transitória ou sintomas dissociativos sob estresse"]}],
+  req:["Padrão difuso, presente em vários contextos","Início no começo da vida adulta"]},
+
+{ id:"alc", nome:"Transtorno por uso de álcool", grupo:"Substâncias", pag:"490–491",
+  nota:"A mesma estrutura serve de guia para outras substâncias (DSM-5, cap. Transtornos Relacionados a Substâncias).",
+  grav:n=> n>=6?"grave": n>=4?"moderada": n>=2?"leve":"",
+  blocos:[{t:"Dois ou mais em 12 meses", min:2, itens:[
+    "Consome mais ou por mais tempo do que pretendia","Desejo persistente ou tentativas fracassadas de reduzir",
+    "Muito tempo gasto para obter, usar ou se recuperar","Fissura (desejo forte de usar)",
+    "Falha em obrigações no trabalho, escola ou casa","Continua apesar de problemas sociais causados pelo uso",
+    "Abandona atividades importantes por causa do uso","Uso em situações de risco físico",
+    "Continua apesar de problema físico ou psicológico agravado pelo uso","Tolerância","Abstinência"]}],
+  req:["Padrão problemático que leva a sofrimento ou prejuízo clinicamente significativo"]},
+
+{ id:"ins", nome:"Transtorno de insônia", grupo:"Sono", pag:"362",
+  blocos:[{t:"A. Insatisfação com o sono, com um ou mais", min:1, itens:[
+    "Dificuldade para iniciar o sono","Dificuldade para manter o sono (acorda e não volta a dormir)",
+    "Despertar antes do horário, sem conseguir voltar a dormir"]}],
+  req:["Causa sofrimento ou prejuízo","Ocorre pelo menos 3 noites por semana","Dura pelo menos 3 meses",
+       "Ocorre mesmo com oportunidade adequada para dormir","Não é mais bem explicado por outro transtorno do sono, substância ou condição"]},
+
+{ id:"ano", nome:"Anorexia nervosa", grupo:"Alimentar", pag:"338–339",
+  blocos:[{t:"Núcleo do quadro", min:"todos", itens:[
+    "Restrição da ingestão que leva a peso significativamente baixo","Medo intenso de ganhar peso ou comportamento persistente que impede o ganho",
+    "Perturbação na percepção do peso ou da forma, ou não reconhece a gravidade do baixo peso"]}],
+  req:[]},
+
+{ id:"bul", nome:"Bulimia nervosa", grupo:"Alimentar", pag:"345",
+  blocos:[{t:"Núcleo do quadro", min:"todos", itens:[
+    "Episódios recorrentes de compulsão alimentar (grande quantidade em período delimitado, com perda de controle)",
+    "Comportamentos compensatórios inadequados recorrentes (vômito, laxantes, jejum, exercício excessivo)",
+    "Autoavaliação indevidamente influenciada pela forma e pelo peso"]}],
+  req:["Compulsão e compensação ocorrem pelo menos 1 vez por semana há 3 meses","Não ocorre exclusivamente durante anorexia nervosa"]},
+
+{ id:"tca", nome:"Transtorno de compulsão alimentar", grupo:"Alimentar", pag:"350",
+  blocos:[
+   {t:"A. Episódios", min:"todos", itens:["Episódios recorrentes de compulsão alimentar com sensação de perda de controle"]},
+   {t:"B. Três ou mais", min:3, itens:[
+    "Come muito mais rápido que o normal","Come até se sentir desconfortavelmente cheio",
+    "Come grandes quantidades sem fome física","Come sozinho por vergonha da quantidade",
+    "Sente nojo de si, depressão ou culpa depois"]}],
+  req:["Sofrimento acentuado com a compulsão","Pelo menos 1 vez por semana há 3 meses",
+       "Sem comportamento compensatório recorrente"]},
+
+{ id:"adap", nome:"Transtorno de adaptação", grupo:"Trauma e estressores", pag:"286–287",
+  blocos:[
+   {t:"A. Resposta a estressor", min:"todos", itens:["Sintomas emocionais ou comportamentais em resposta a estressor identificável, surgidos até 3 meses depois dele"]},
+   {t:"B. Significância clínica (um ou mais)", min:1, itens:[
+    "Sofrimento desproporcional à intensidade do estressor","Prejuízo significativo no funcionamento"]}],
+  req:["Não satisfaz critérios de outro transtorno mental","Não representa luto normal",
+       "Os sintomas não persistem mais de 6 meses após o fim do estressor"]},
+
+{ id:"som", nome:"Transtorno de sintomas somáticos", grupo:"Sintomas somáticos", pag:"311",
+  blocos:[
+   {t:"A. Sintoma", min:"todos", itens:["Um ou mais sintomas físicos que causam aflição ou perturbam a vida diária"]},
+   {t:"B. Pensamentos, sentimentos ou comportamentos excessivos (um ou mais)", min:1, itens:[
+    "Pensamentos desproporcionais e persistentes sobre a gravidade dos sintomas",
+    "Ansiedade persistentemente elevada sobre a saúde ou os sintomas",
+    "Tempo e energia excessivos dedicados aos sintomas ou à saúde"]}],
+  req:["O estado sintomático persiste, em geral, por mais de 6 meses"]}
+];
+
+/* Perguntas de triagem: cada uma abre as hipóteses ligadas */
+const TRIAGEM = [
+ {id:"risco", q:"Há ideação suicida, plano, tentativa ou autolesão?", sub:"Sinal de alerta: avaliação de risco imediata", hip:[], risco:true},
+ {id:"g1", q:"Tristeza persistente ou perda de prazer?", hip:["tdm","dist"]},
+ {id:"g2", q:"Períodos de euforia, irritação ou energia muito acima do habitual?", hip:["bp1","bp2"]},
+ {id:"g3", q:"Preocupação excessiva e difícil de controlar?", hip:["tag"]},
+ {id:"g4", q:"Crises súbitas de medo intenso com sintomas físicos?", hip:["pan"]},
+ {id:"g5", q:"Medo intenso de ser avaliado em situações sociais?", hip:["soc"]},
+ {id:"g6", q:"Pensamentos intrusivos ou rituais repetitivos?", hip:["toc"]},
+ {id:"g7", q:"Exposição a evento traumático com reações persistentes?", hip:["tept"]},
+ {id:"g8", q:"Desatenção, agitação ou impulsividade desde a infância?", hip:["tdah"]},
+ {id:"g9", q:"Dificuldades sociais com rotinas rígidas, interesses restritos ou questões sensoriais?", hip:["tea"]},
+ {id:"g10", q:"Instabilidade em relações, emoções, autoimagem e impulsividade?", hip:["bord"]},
+ {id:"g11", q:"Uso de álcool ou outra substância trazendo problemas?", hip:["alc"]},
+ {id:"g12", q:"Dificuldade para dormir ou manter o sono?", hip:["ins"]},
+ {id:"g13", q:"Preocupações com alimentação, peso ou imagem corporal?", hip:["ano","bul","tca"]},
+ {id:"g14", q:"Estressor recente com sofrimento além do esperado?", hip:["adap"]},
+ {id:"g15", q:"Preocupação intensa com sintomas físicos ou com a saúde?", hip:["som"]}
+];
+
+/* ================= ESTADO ================= */
+const novoEstado = () => ({ etapa:0, pac:{ini:"",idade:"",data:new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10),queixa:"",obs:""},
+  tri:{}, marc:{}, req:{}, flags:{}, atual:null });
+let S = novoEstado();
+const ETAPAS = ["1 · Paciente","2 · Triagem","3 · Critérios","4 · Resultado"];
+
+const txt = it => typeof it==="string"?it:it.t;
+const ctxDe = h => ({ idade: Number(S.pac.idade)||0, flags: S.flags[h.id]||{} });
+const minDe = (b,h) => b.min==="todos"? b.itens.length : (typeof b.min==="function"? b.min(ctxDe(h)) : b.min);
+
+function avaliar(h){
+  const m = S.marc[h.id]||{};
+  const blocos = h.blocos.map((b,bi)=>{
+    const n = b.itens.filter((_,ii)=>m[bi+"_"+ii]).length;
+    const min = minDe(b,h);
+    const umDeOk = !b.umDe || b.umDe.some(ii=>m[bi+"_"+ii]);
+    return {t:b.t, n, min, ok: n>=min && umDeOk, umDeOk, frac: Math.min(n,min)/min};
+  });
+  const nucleo = h.logica==="algum" ? blocos.some(b=>b.ok) : blocos.every(b=>b.ok);
+  const fracN = h.logica==="algum" ? Math.max(...blocos.map(b=>b.frac)) : blocos.reduce((s,b)=>s+b.frac,0)/blocos.length;
+  const r = S.req[h.id]||{};
+  const reqOk = h.req.filter((_,i)=>r[i]).length;
+  const fracR = h.req.length? reqOk/h.req.length : 1;
+  const score = h.req.length? fracN*0.7 + fracR*0.3 : fracN;
+  let nivel, rot;
+  if(nucleo && reqOk===h.req.length){nivel=3; rot="Compatível com os critérios";}
+  else if(nucleo){nivel=2; rot="Núcleo atendido · faltam requisitos";}
+  else if(score>=0.5){nivel=1; rot="Parcialmente compatível";}
+  else {nivel=0; rot="Poucos indícios";}
+  const totalMarc = Object.values(m).filter(Boolean).length;
+  const faltam = h.req.filter((_,i)=>!r[i]);
+  const risco = h.blocos.some((b,bi)=>b.itens.some((it,ii)=>it.risco && m[bi+"_"+ii]));
+  const grav = h.grav && nucleo ? h.grav(blocos[0].n) : "";
+  return {blocos,nucleo,score,nivel,rot,totalMarc,faltam,reqOk,risco,grav};
+}
+
+const ativas = () => {
+  const ids = new Set();
+  TRIAGEM.forEach(g=>{ if(S.tri[g.id]==="sim"||S.tri[g.id]==="talvez") g.hip.forEach(i=>ids.add(i)); });
+  return HIP.filter(h=>ids.has(h.id));
+};
+const temRisco = () => S.tri.risco==="sim"||S.tri.risco==="talvez"|| ativas().some(h=>avaliar(h).risco);
+
+/* ================= TELAS ================= */
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function render(){
+  $("#stepper").innerHTML = ETAPAS.map((e,i)=>`<button class="${i===S.etapa?'on':(i<S.etapa?'done':'')}" data-go="${i}">${e}</button>`).join("");
+  [telaPaciente,telaTriagem,telaCriterios,telaResultado][S.etapa]();
+  window.scrollTo({top:0});
+}
+const alertaRisco = () => temRisco()? `<div class="alert risk"><b>Atenção: sinal de risco.</b> Há indicação de ideação suicida ou autolesão. Priorize a avaliação de risco e o plano de segurança antes de seguir com a anamnese. Em emergência: SAMU 192 · CVV 188.</div>`:"";
+
+function telaPaciente(){
+  const p=S.pac;
+  $("#view").innerHTML = `<div class="card">
+   <h2>Dados da avaliação</h2>
+   <p class="hint">Use apenas iniciais para preservar o sigilo. A idade ajusta os critérios do TDAH.</p>
+   <div class="row">
+    <div><label class="f">Iniciais do paciente</label><input type="text" id="ini" value="${esc(p.ini)}" placeholder="Ex.: M.A.S."></div>
+    <div><label class="f">Idade</label><input type="number" id="idade" min="0" max="120" value="${esc(p.idade)}"></div>
+    <div><label class="f">Data</label><input type="date" id="data" value="${esc(p.data)}"></div>
+   </div>
+   <label class="f">Queixa principal</label><textarea id="queixa" placeholder="Nas palavras do paciente">${esc(p.queixa)}</textarea>
+   <div class="nav"><span></span><button class="btn" data-go="1">Ir para a triagem →</button></div>
+  </div>`;
+  ["ini","idade","data","queixa"].forEach(k=>$("#"+k).oninput=e=>S.pac[k]=e.target.value);
+}
+
+function telaTriagem(){
+  $("#view").innerHTML = `<div class="card">
+   <h2>Triagem por áreas</h2>
+   <p class="hint">Responda pelo que surgiu na entrevista. "Sim" e "Talvez" abrem a checagem detalhada na próxima etapa.</p>
+   ${TRIAGEM.map(g=>`<div class="gate ${g.risco?'risk':''}">
+     <div class="q">${g.q}${g.sub?`<small>${g.sub}</small>`:""}</div>
+     <div class="seg" data-g="${g.id}">${["sim","talvez","nao"].map(v=>`<button data-v="${v}" class="${S.tri[g.id]===v?'on':''}">${v==="nao"?"Não":v[0].toUpperCase()+v.slice(1)}</button>`).join("")}</div>
+   </div>`).join("")}
+   <div class="nav"><button class="btn ghost" data-go="0">← Voltar</button><button class="btn" data-go="2">Ver critérios →</button></div>
+  </div>`;
+  document.querySelectorAll(".seg").forEach(sg=>sg.onclick=e=>{
+    const v=e.target.dataset.v; if(!v) return;
+    S.tri[sg.dataset.g] = S.tri[sg.dataset.g]===v? undefined : v; render(); });
+}
+
+function telaCriterios(){
+  const lista = ativas();
+  if(!lista.length){
+    $("#view").innerHTML = `${alertaRisco()}<div class="card"><h2>Nenhuma área selecionada</h2>
+     <p class="hint">Marque "Sim" ou "Talvez" em ao menos uma pergunta da triagem.</p>
+     <div class="nav"><button class="btn ghost" data-go="1">← Voltar à triagem</button></div></div>`; return;
+  }
+  if(!lista.find(h=>h.id===S.atual)) S.atual = lista[0].id;
+  const h = lista.find(x=>x.id===S.atual), idx = lista.indexOf(h), a = avaliar(h);
+  const m = S.marc[h.id]||{}, r = S.req[h.id]||{}, f = S.flags[h.id]||{};
+  $("#view").innerHTML = `${alertaRisco()}
+  <div class="chips">${lista.map(x=>{const ax=avaliar(x);return `<button class="chip ${x.id===h.id?'on':''} ${ax.nivel>=2?'ok':''}" data-h="${x.id}">${x.nome.split(" (")[0]}</button>`}).join("")}</div>
+  <div class="card">
+   <h2>${h.nome}</h2>
+   <p class="ref">Hipótese ${idx+1} de ${lista.length} · ${h.grupo} · DSM-5, p. ${h.pag}</p>
+   ${h.nota?`<p class="hint">${h.nota}</p>`:""}
+   ${(h.flags||[]).map(fl=>`<div class="block flag"><label class="chk"><input type="checkbox" data-flag="${fl.id}" ${f[fl.id]?'checked':''}> ${fl.t}</label></div>`).join("")}
+   ${h.blocos.map((b,bi)=>{const ab=a.blocos[bi];return `<div class="block">
+     <div class="bt"><span>${b.t}</span><span class="count ${ab.ok?'met':''}">${ab.n} de ${ab.min} exigidos</span></div>
+     ${b.umDe?`<p class="hint">Pelo menos um dos dois primeiros itens precisa estar presente.</p>`:""}
+     ${b.itens.map((it,ii)=>`<label class="chk ${it.risco?'riskitem':''}"><input type="checkbox" data-k="${bi}_${ii}" ${m[bi+"_"+ii]?'checked':''}> ${txt(it)}</label>`).join("")}
+   </div>`}).join("")}
+   ${h.req.length?`<div class="block req"><div class="bt"><span>Requisitos (duração, prejuízo e exclusões)</span><span class="count ${a.reqOk===h.req.length?'met':''}">${a.reqOk} de ${h.req.length}</span></div>
+     ${h.req.map((q,i)=>`<label class="chk"><input type="checkbox" data-r="${i}" ${r[i]?'checked':''}> ${q}</label>`).join("")}</div>`:""}
+   <div class="nav">
+    ${idx>0?`<button class="btn ghost" data-h="${lista[idx-1].id}">← Anterior</button>`:`<button class="btn ghost" data-go="1">← Triagem</button>`}
+    ${idx<lista.length-1?`<button class="btn" data-h="${lista[idx+1].id}">Próxima hipótese →</button>`:`<button class="btn" data-go="3">Ver resultado →</button>`}
+   </div>
+  </div>`;
+  const up = (obj,key,val)=>{ (S[obj][h.id] ||= {})[key]=val; render2(); };
+  document.querySelectorAll("[data-k]").forEach(c=>c.onchange=e=>up("marc",c.dataset.k,e.target.checked));
+  document.querySelectorAll("[data-r]").forEach(c=>c.onchange=e=>up("req",c.dataset.r,e.target.checked));
+  document.querySelectorAll("[data-flag]").forEach(c=>c.onchange=e=>up("flags",c.dataset.flag,e.target.checked));
+}
+/* re-render sem pular para o topo */
+function render2(){ const y=window.scrollY; [telaPaciente,telaTriagem,telaCriterios,telaResultado][S.etapa](); window.scrollTo({top:y}); }
+
+function telaResultado(){
+  const lista = ativas().map(h=>({h,a:avaliar(h)})).sort((x,y)=>y.a.nivel-x.a.nivel||y.a.score-x.a.score);
+  $("#view").innerHTML = `${alertaRisco()}
+  <div class="card">
+   <h2>Hipóteses levantadas</h2>
+   <p class="hint">Ordenadas da mais à menos compatível. Servem para orientar a investigação, não substituem o julgamento clínico nem o diagnóstico diferencial.</p>
+  </div>
+  ${lista.length? lista.map(({h,a})=>`<div class="card res s${a.nivel}">
+    <span class="badge">${a.rot}${a.grav?` · gravidade ${a.grav}`:""}</span>
+    <h2>${h.nome}</h2>
+    <p class="ref">DSM-5, p. ${h.pag}</p>
+    <div class="bar"><i style="width:${Math.round(a.score*100)}%"></i></div>
+    <ul class="mini">${a.blocos.map(b=>`<li>${b.t}: ${b.n} de ${b.min}${b.ok?" ✓":""}${!b.umDeOk&&b.n?" (falta humor deprimido ou perda de prazer)":""}</li>`).join("")}
+    ${a.faltam.map(q=>`<li class="miss">A confirmar: ${q}</li>`).join("")}</ul>
+    <p class="noprint" style="margin:10px 0 0"><button class="btn sec" data-edit="${h.id}">Revisar critérios</button></p>
+  </div>`).join("") : `<div class="card"><p class="hint">Nenhuma hipótese aberta na triagem.</p></div>`}
+  <div class="card">
+   <h3 style="margin-top:0">Observações clínicas</h3>
+   <textarea id="obs" placeholder="Diagnóstico diferencial, comorbidades, histórico, próximos passos">${esc(S.pac.obs)}</textarea>
+   <h3>Relatório para o prontuário</h3>
+   <pre id="rel"></pre>
+   <div class="nav noprint" style="flex-wrap:wrap">
+    <button class="btn ghost" data-go="2">← Critérios</button>
+    <span style="display:flex;gap:8px;flex-wrap:wrap">
+     <button class="btn sec" id="copiar">Copiar relatório</button>
+     <button class="btn sec" onclick="window.print()">Imprimir / PDF</button>
+     <button class="btn ghost" id="nova">Nova avaliação</button>
+    </span>
+   </div>
+  </div>`;
+  const atualizaRel = ()=>$("#rel").textContent = relatorio(lista);
+  atualizaRel();
+  $("#obs").oninput=e=>{S.pac.obs=e.target.value; atualizaRel();};
+  $("#copiar").onclick=async e=>{ try{await navigator.clipboard.writeText($("#rel").textContent); e.target.textContent="Copiado ✓";}catch(_){ e.target.textContent="Selecione o texto e copie"; } };
+  $("#nova").onclick=()=>{ if(confirm("Apagar todos os dados desta avaliação?")){ S=novoEstado(); render(); } };
+  document.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>{S.atual=b.dataset.edit; S.etapa=2; render();});
+}
+
+function relatorio(lista){
+  const p=S.pac, L=[];
+  const d = p.data? p.data.split("-").reverse().join("/") : "";
+  L.push("APOIO À ANAMNESE · HIPÓTESES SEGUNDO O DSM-5");
+  L.push(`Paciente: ${p.ini||"(iniciais)"}   Idade: ${p.idade||"-"}   Data: ${d}`);
+  if(p.queixa) L.push(`Queixa principal: ${p.queixa}`);
+  if(temRisco()) L.push("", "ALERTA: sinais de ideação suicida ou autolesão. Avaliação de risco indicada.");
+  L.push("", "Hipóteses (da mais à menos compatível):");
+  lista.forEach(({h,a},i)=>{
+    L.push(`${i+1}. ${h.nome} (DSM-5, p. ${h.pag}): ${a.rot}${a.grav?`, gravidade ${a.grav}`:""}`);
+    a.blocos.forEach(b=>L.push(`   - ${b.t}: ${b.n}/${b.min}`));
+    if(a.faltam.length) L.push(`   - A confirmar: ${a.faltam.join("; ")}`);
+  });
+  if(!lista.length) L.push("Nenhuma área assinalada na triagem.");
+  if(p.obs) L.push("", "Observações clínicas:", p.obs);
+  L.push("", "Documento de apoio. Hipóteses a investigar; a conclusão diagnóstica é da profissional responsável.");
+  return L.join("\n");
+}
+
+/* navegação geral */
+document.addEventListener("click",e=>{
+  const go=e.target.closest("[data-go]"); if(go){ S.etapa=Number(go.dataset.go); render(); return; }
+  const hh=e.target.closest("[data-h]"); if(hh){ S.atual=hh.dataset.h; render(); }
+});
+window.addEventListener("beforeunload",e=>{ if(Object.keys(S.marc).length){ e.preventDefault(); e.returnValue=""; } });
+render();
+</script>
+</body>
+</html>
