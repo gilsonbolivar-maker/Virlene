@@ -1,4 +1,4 @@
-# PsicoVirlene · Apoio à Anamnese (DSM-5)
+# Anamnese com Virlene Torres
 
 Ferramenta de apoio clínico para a psicóloga Virlene Torres. Organiza as observações da entrevista e levanta hipóteses a investigar, com base nos critérios do DSM-5.
 
