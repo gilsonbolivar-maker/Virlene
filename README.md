@@ -11,7 +11,7 @@ https://gilsonbolivar-maker.github.io/Virlene/ (pode ser instalado no celular co
 ## Como usar
 
 1. **Paciente**: iniciais, idade, data e queixa principal.
-2. **Escala**: Escala Transversal de Sintomas de Nível 1 do DSM-5 (adulto), com 23 perguntas que o próprio paciente pode responder no aparelho. As áreas acima do limite oficial já chegam marcadas na triagem.
+2. **Escala**: a psicóloga preenche a Escala Transversal de Sintomas de Nível 1 do DSM-5 (adulto), com 23 perguntas, enquanto conversa com o paciente (por exemplo, em consulta online). As áreas acima do limite oficial já chegam marcadas na triagem.
 3. **Triagem**: 16 perguntas por área (Sim / Talvez / Não). Inclui alerta de risco.
 4. **Critérios**: checagem detalhada só das hipóteses abertas na triagem.
 5. **Resultado**: hipóteses ordenadas, quadro da escala, o que falta confirmar e relatório pronto para copiar ou imprimir.
@@ -22,8 +22,9 @@ Depressivo maior, distimia, bipolar I, bipolar II, ansiedade generalizada, pâni
 
 ## Privacidade
 
-- Arquivo único (`index.html`), sem servidor.
-- Nada é salvo nem enviado: ao fechar a página, os dados somem.
+- Arquivo único (`index.html`), sem servidor. Nada é enviado para a internet.
+- O rascunho da anamnese em andamento é guardado automaticamente neste aparelho, no navegador. A lista **Anamneses salvas** guarda as que a psicóloga tocar em **Salvar**, para reabrir, ver o relatório ou imprimir.
+- Se os dados do navegador forem apagados, as anamneses somem. O aparelho deve ter senha e não ser compartilhado.
 
 ## Sobre os critérios
 

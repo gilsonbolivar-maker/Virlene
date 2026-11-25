@@ -103,6 +103,17 @@ pre#rel{white-space:pre-wrap;background:#faf9fd;border:1px solid var(--line);bor
 .prog{font-size:.85rem;color:var(--muted);text-align:center;margin:12px 0 0}
 footer{max-width:860px;margin:0 auto;padding:4px 16px 30px;color:var(--muted);font-size:.78rem}
 .hidden{display:none}
+.arq-bar{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px}
+.arq-bar .btn{min-height:44px}
+#statusArq{font-size:.82rem;color:var(--ok);margin:0 0 8px}
+#arquivo h3{margin:4px 0 8px}
+.salva{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.salva:last-child{border-bottom:0}
+.salva p{margin:0;font-size:.95rem;font-weight:650}
+.salva small{display:block;font-weight:400;color:var(--muted);font-size:.8rem;margin-top:2px}
+.salva .acts{display:flex;gap:8px;flex-shrink:0}
+.salva .acts .btn{padding:10px 14px;min-height:44px}
+.btn.apag{background:#fff;color:var(--risk);border:1px solid #f3c1bb}
 @media print{header,.stepper,.nav,.noprint,footer{display:none!important} body{background:#fff} .card{border:0}}
 </style>
 </head>
@@ -114,7 +125,17 @@ footer{max-width:860px;margin:0 auto;padding:4px 16px 30px;color:var(--muted);fo
 
 <main>
   <div class="alert info noprint" id="aviso">
-    <b>Ferramenta de apoio clínico.</b> Ela organiza observações e indica hipóteses a investigar. Não emite diagnóstico: a conclusão é sempre da psicóloga. Os critérios aparecem resumidos; confirme no DSM-5 pela página indicada. Nenhum dado sai deste aparelho e nada fica salvo ao fechar a página.
+    <b>Ferramenta de apoio clínico.</b> Ela organiza observações e indica hipóteses a investigar. Não emite diagnóstico: a conclusão é sempre da psicóloga. Os critérios aparecem resumidos; confirme no DSM-5 pela página indicada. Os dados ficam só neste aparelho, no navegador. Nada é enviado. Se os dados do navegador forem apagados, as anamneses somem.
+  </div>
+
+  <div class="card noprint" id="arquivo">
+    <div class="arq-bar">
+      <button class="btn" id="salvar">Salvar</button>
+      <button class="btn ghost" id="novaAnm">Nova anamnese</button>
+    </div>
+    <p id="statusArq" class="hidden"></p>
+    <h3>Anamneses salvas</h3>
+    <div id="listaSalvas"></div>
   </div>
 
   <nav class="stepper" id="stepper"></nav>
@@ -418,7 +439,7 @@ const ESC_DOM = [
 /* ================= ESTADO ================= */
 const novoEstado = () => ({ etapa:0, pac:{ini:"",idade:"",data:new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10),queixa:"",obs:""},
   tri:{}, marc:{}, req:{}, flags:{}, atual:null,
-  esc:{}, escResp:"informante", escRel:"", escHoras:"", auto:[], mexidas:[] });
+  esc:{}, escResp:"informante", escRel:"", escHoras:"", auto:[], mexidas:[], salvoId:null });
 let S = novoEstado();
 const ETAPAS = [["1","Paciente"],["2","Escala"],["3","Triagem"],["4","Critérios"],["5","Resultado"]];
 const TELAS = [telaPaciente, telaEscala, telaTriagem, telaCriterios, telaResultado];
@@ -494,9 +515,126 @@ function indicacoesEscala(){
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
+/* Arquivo local: nada sai deste aparelho. */
+const CHAVE_RASCUNHO = "virlene-rascunho";
+const CHAVE_SALVAS = "virlene-salvas";
+const clonar = x => JSON.parse(JSON.stringify(x));
+
+function gravarRascunho(){
+  try{ localStorage.setItem(CHAVE_RASCUNHO, JSON.stringify(S)); }catch(_){}
+}
+function restaurarRascunho(){
+  try{
+    const t = localStorage.getItem(CHAVE_RASCUNHO);
+    if(!t) return;
+    const d = JSON.parse(t);
+    if(!d || !d.pac) return;
+    const base = novoEstado();
+    S = Object.assign(base, d, { pac: Object.assign(base.pac, d.pac||{}) });
+  }catch(_){}
+}
+function listaSalvas(){
+  try{ const a = JSON.parse(localStorage.getItem(CHAVE_SALVAS)||"[]"); return Array.isArray(a)?a:[]; }
+  catch(_){ return []; }
+}
+function gravarLista(a){ localStorage.setItem(CHAVE_SALVAS, JSON.stringify(a)); }
+function rotuloData(iso){
+  if(!iso) return "—";
+  const p = String(iso).split("-");
+  return p.length===3 ? p[2]+"/"+p[1]+"/"+p[0] : iso;
+}
+function temConteudo(s){
+  const p = s.pac||{};
+  return !!(p.ini||p.idade||p.queixa||p.obs
+    || Object.keys(s.esc||{}).length || Object.keys(s.tri||{}).length
+    || Object.keys(s.marc||{}).length);
+}
+function statusArq(msg){
+  const el = $("#statusArq"); if(!el) return;
+  el.textContent = msg;
+  el.classList.toggle("hidden", !msg);
+  if(msg) setTimeout(()=>{ if(el.textContent===msg){ el.textContent=""; el.classList.add("hidden"); } }, 2500);
+}
+function salvarAnamnese(){
+  try{
+    if(!S.salvoId) S.salvoId = "a"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+    const item = {
+      id: S.salvoId,
+      ini: (S.pac.ini||"").trim() || "(sem iniciais)",
+      data: S.pac.data||"",
+      queixa: (S.pac.queixa||"").trim(),
+      salvoEm: new Date().toISOString(),
+      estado: clonar(S)
+    };
+    const lista = listaSalvas().filter(x=>x.id!==item.id);
+    lista.unshift(item);
+    gravarLista(lista);
+    gravarRascunho();
+    desenharLista();
+    statusArq("Salva neste aparelho.");
+  }catch(_){ statusArq("Não foi possível salvar neste aparelho."); }
+}
+function abrirSalva(id){
+  const item = listaSalvas().find(x=>x.id===id);
+  if(!item || !item.estado) return;
+  const base = novoEstado();
+  S = Object.assign(base, clonar(item.estado), {
+    pac: Object.assign(base.pac, item.estado.pac||{}),
+    salvoId: item.id,
+    etapa: 4
+  });
+  gravarRascunho();
+  render();
+  const rel = $("#rel");
+  if(rel) rel.closest(".card").scrollIntoView({block:"start"});
+}
+function apagarSalva(id){
+  const item = listaSalvas().find(x=>x.id===id);
+  const nome = item? item.ini+" ("+rotuloData(item.data)+")" : "esta anamnese";
+  if(!confirm("Apagar a anamnese de "+nome+"?\nEsta ação não pode ser desfeita.")) return;
+  gravarLista(listaSalvas().filter(x=>x.id!==id));
+  if(S.salvoId===id) S.salvoId = null;
+  gravarRascunho();
+  desenharLista();
+}
+function novaAnamnese(){
+  if(temConteudo(S) && !confirm("Começar uma anamnese em branco?\nO que não tiver sido salvo na lista será perdido.")) return;
+  S = novoEstado();
+  gravarRascunho();
+  render();
+}
+function desenharLista(){
+  const box = $("#listaSalvas"); if(!box) return;
+  const lista = listaSalvas();
+  if(!lista.length){
+    box.innerHTML = '<p class="hint" style="margin:0">Nenhuma anamnese na lista ainda. Toque em Salvar para guardar esta neste aparelho.</p>';
+    return;
+  }
+  box.innerHTML = lista.map(it=>{
+    const q = it.queixa||"";
+    const extra = q ? " · "+esc(q.slice(0,60))+(q.length>60?"…":"") : "";
+    return `<div class="salva">
+    <p>${esc(it.ini)} <small>${rotuloData(it.data)}${extra}</small></p>
+    <div class="acts">
+      <button class="btn sec" data-abrir="${esc(it.id)}">Abrir</button>
+      <button class="btn apag" data-apagar="${esc(it.id)}">Apagar</button>
+    </div>
+  </div>`;
+  }).join("");
+  box.querySelectorAll("[data-abrir]").forEach(b=>b.onclick=()=>abrirSalva(b.dataset.abrir));
+  box.querySelectorAll("[data-apagar]").forEach(b=>b.onclick=()=>apagarSalva(b.dataset.apagar));
+}
+function ligarArquivo(){
+  $("#salvar").onclick = salvarAnamnese;
+  $("#novaAnm").onclick = novaAnamnese;
+  desenharLista();
+}
+
 function render(){
   $("#stepper").innerHTML = ETAPAS.map((e,i)=>`<button class="${i===S.etapa?'on':(i<S.etapa?'done':'')}" data-go="${i}"><b>${e[0]}</b>${e[1]}</button>`).join("");
   TELAS[S.etapa]();
+  gravarRascunho();
+  desenharLista();
   window.scrollTo({top:0});
 }
 const alertaRisco = () => temRisco()? `<div class="alert risk"><b>Atenção: sinal de risco.</b> Há indicação de ideação suicida ou autolesão. Priorize a avaliação de risco e o plano de segurança antes de seguir com a anamnese. Em emergência: SAMU 192 · CVV 188.</div>`:"";
@@ -516,7 +654,7 @@ function telaPaciente(){
    <label class="f">Queixa principal</label><textarea id="queixa" placeholder="Nas palavras do paciente">${esc(p.queixa)}</textarea>
    <div class="nav"><span></span><button class="btn" data-go="1">Ir para a escala →</button></div>
   </div>`;
-  ["ini","idade","data","queixa"].forEach(k=>$("#"+k).oninput=e=>S.pac[k]=e.target.value);
+  ["ini","idade","data","queixa"].forEach(k=>$("#"+k).oninput=e=>{S.pac[k]=e.target.value; gravarRascunho();});
 }
 
 function telaEscala(){
@@ -593,7 +731,7 @@ function telaCriterios(){
   document.querySelectorAll("[data-flag]").forEach(c=>c.onchange=e=>up("flags",c.dataset.flag,e.target.checked));
 }
 /* re-render sem pular para o topo */
-function render2(){ const y=window.scrollY; TELAS[S.etapa](); window.scrollTo({top:y}); }
+function render2(){ const y=window.scrollY; TELAS[S.etapa](); gravarRascunho(); window.scrollTo({top:y}); }
 
 function telaResultado(){
   const lista = ativas().map(h=>({h,a:avaliar(h)})).sort((x,y)=>y.a.nivel-x.a.nivel||y.a.score-x.a.score);
@@ -622,20 +760,16 @@ function telaResultado(){
     <span style="display:flex;gap:8px;flex-wrap:wrap">
      <button class="btn sec" id="copiar">Copiar relatório</button>
      ${emMoldura?"":`<button class="btn sec" id="imprimir">Imprimir / PDF</button>`}
-     <button class="btn ghost" id="nova">Nova avaliação</button>
+     <button class="btn ghost" id="nova">Nova anamnese</button>
     </span>
    </div>
   </div>`;
   const atualizaRel = ()=>$("#rel").textContent = relatorio(lista);
   atualizaRel();
-  $("#obs").oninput=e=>{S.pac.obs=e.target.value; atualizaRel();};
+  $("#obs").oninput=e=>{S.pac.obs=e.target.value; atualizaRel(); gravarRascunho();};
   $("#copiar").onclick=async e=>{ try{await navigator.clipboard.writeText($("#rel").textContent); e.target.textContent="Copiado ✓";}catch(_){ e.target.textContent="Selecione o texto e copie"; } };
   if($("#imprimir")) $("#imprimir").onclick=()=>window.print();
-  let armado=false;
-  $("#nova").onclick=e=>{
-    if(!armado){ armado=true; e.target.textContent="Toque de novo para apagar tudo";
-      setTimeout(()=>{ armado=false; if(e.target.isConnected) e.target.textContent="Nova avaliação"; },4000); return; }
-    S=novoEstado(); render(); };
+  $("#nova").onclick=()=>novaAnamnese();
   document.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>{S.atual=b.dataset.edit; S.etapa=3; render();});
 }
 
@@ -686,7 +820,8 @@ document.addEventListener("click",e=>{
   if(go){ const nova=Number(go.dataset.go); if(S.etapa===1 && nova!==1) aplicarEscala(); S.etapa=nova; render(); return; }
   const hh=e.target.closest("[data-h]"); if(hh){ S.atual=hh.dataset.h; render(); }
 });
-window.addEventListener("beforeunload",e=>{ if(Object.keys(S.marc).length||Object.keys(S.esc).length){ e.preventDefault(); e.returnValue=""; } });
+restaurarRascunho();
+ligarArquivo();
 render();
 
 /* PWA: funciona sem internet depois da primeira abertura (ignorado onde não é permitido) */
