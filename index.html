@@ -632,6 +632,7 @@ function ligarArquivo(){
 
 function render(){
   $("#stepper").innerHTML = ETAPAS.map((e,i)=>`<button class="${i===S.etapa?'on':(i<S.etapa?'done':'')}" data-go="${i}"><b>${e[0]}</b>${e[1]}</button>`).join("");
+  $("#aviso").classList.toggle("hidden", S.etapa!==0);
   TELAS[S.etapa]();
   gravarRascunho();
   desenharLista();
