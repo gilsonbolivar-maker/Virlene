@@ -345,6 +345,8 @@ const novoEstado = () => ({ etapa:0, pac:{ini:"",idade:"",data:new Date(Date.now
   tri:{}, marc:{}, req:{}, flags:{}, atual:null });
 let S = novoEstado();
 const ETAPAS = ["1 · Paciente","2 · Triagem","3 · Critérios","4 · Resultado"];
+/* dentro de uma moldura (ex.: visualizador do Claude) a impressão é bloqueada */
+const emMoldura = (()=>{ try{ return window.self!==window.top; }catch(_){ return true; } })();
 
 const txt = it => typeof it==="string"?it:it.t;
 const ctxDe = h => ({ idade: Number(S.pac.idade)||0, flags: S.flags[h.id]||{} });
@@ -422,7 +424,7 @@ function telaTriagem(){
   </div>`;
   document.querySelectorAll(".seg").forEach(sg=>sg.onclick=e=>{
     const v=e.target.dataset.v; if(!v) return;
-    S.tri[sg.dataset.g] = S.tri[sg.dataset.g]===v? undefined : v; render(); });
+    S.tri[sg.dataset.g] = S.tri[sg.dataset.g]===v? undefined : v; render2(); });
 }
 
 function telaCriterios(){
@@ -487,7 +489,7 @@ function telaResultado(){
     <button class="btn ghost" data-go="2">← Critérios</button>
     <span style="display:flex;gap:8px;flex-wrap:wrap">
      <button class="btn sec" id="copiar">Copiar relatório</button>
-     <button class="btn sec" onclick="window.print()">Imprimir / PDF</button>
+     ${emMoldura?"":`<button class="btn sec" id="imprimir">Imprimir / PDF</button>`}
      <button class="btn ghost" id="nova">Nova avaliação</button>
     </span>
    </div>
@@ -496,7 +498,12 @@ function telaResultado(){
   atualizaRel();
   $("#obs").oninput=e=>{S.pac.obs=e.target.value; atualizaRel();};
   $("#copiar").onclick=async e=>{ try{await navigator.clipboard.writeText($("#rel").textContent); e.target.textContent="Copiado ✓";}catch(_){ e.target.textContent="Selecione o texto e copie"; } };
-  $("#nova").onclick=()=>{ if(confirm("Apagar todos os dados desta avaliação?")){ S=novoEstado(); render(); } };
+  if($("#imprimir")) $("#imprimir").onclick=()=>window.print();
+  let armado=false;
+  $("#nova").onclick=e=>{
+    if(!armado){ armado=true; e.target.textContent="Toque de novo para apagar tudo";
+      setTimeout(()=>{ armado=false; if(e.target.isConnected) e.target.textContent="Nova avaliação"; },4000); return; }
+    S=novoEstado(); render(); };
   document.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>{S.atual=b.dataset.edit; S.etapa=2; render();});
 }
 
