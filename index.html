@@ -418,7 +418,7 @@ const ESC_DOM = [
 /* ================= ESTADO ================= */
 const novoEstado = () => ({ etapa:0, pac:{ini:"",idade:"",data:new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10),queixa:"",obs:""},
   tri:{}, marc:{}, req:{}, flags:{}, atual:null,
-  esc:{}, escResp:"paciente", escRel:"", escHoras:"", auto:[], mexidas:[] });
+  esc:{}, escResp:"informante", escRel:"", escHoras:"", auto:[], mexidas:[] });
 let S = novoEstado();
 const ETAPAS = [["1","Paciente"],["2","Escala"],["3","Triagem"],["4","Critérios"],["5","Resultado"]];
 const TELAS = [telaPaciente, telaEscala, telaTriagem, telaCriterios, telaResultado];
@@ -496,7 +496,6 @@ const esc = s => String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&g
 
 function render(){
   $("#stepper").innerHTML = ETAPAS.map((e,i)=>`<button class="${i===S.etapa?'on':(i<S.etapa?'done':'')}" data-go="${i}"><b>${e[0]}</b>${e[1]}</button>`).join("");
-  $("#aviso").classList.toggle("hidden", S.etapa===1); /* na escala, o paciente vê só as perguntas */
   TELAS[S.etapa]();
   window.scrollTo({top:0});
 }
@@ -524,13 +523,7 @@ function telaEscala(){
   const n = Object.keys(S.esc).length, total = ESC_ITENS.length;
   $("#view").innerHTML = `<div class="card">
    <h2>Escala de sintomas do DSM-5 (Nível 1)</h2>
-   <p class="hint">O próprio paciente pode responder neste aparelho, antes da conversa. A interpretação só aparece na etapa 5.</p>
-   <label class="f">Quem está respondendo?</label>
-   <div class="seg" id="resp" style="width:fit-content">${[["paciente","Paciente"],["informante","Informante"]].map(([v,l])=>`<button data-quem="${v}" class="${S.escResp===v?'on':''}">${l}</button>`).join("")}</div>
-   ${S.escResp==="informante"?`<div class="row">
-     <div><label class="f">Relação com o paciente</label><input type="text" id="rel" value="${esc(S.escRel)}" placeholder="Ex.: mãe, cônjuge"></div>
-     <div><label class="f">Horas por semana com o paciente</label><input type="number" id="horas" min="0" value="${esc(S.escHoras)}"></div></div>`:""}
-   <div class="legend"><b>Instruções:</b> as questões abaixo perguntam sobre coisas que podem tê-lo perturbado. Para cada pergunta, toque no número que melhor descreve o quanto (ou com que frequência) você foi perturbado durante as <b>duas (2) últimas semanas</b>.
+   <div class="legend"><b>Instruções:</b> as questões abaixo perguntam sobre coisas que podem ter perturbado o paciente. Para cada pergunta, toque no número que melhor descreve o quanto (ou com que frequência) o paciente foi perturbado durante as <b>duas (2) últimas semanas</b>.
      <span>0 = nada, de modo algum · 1 = muito leve, raramente, menos de um ou dois dias · 2 = leve, vários dias · 3 = moderado, mais da metade dos dias · 4 = grave, quase todos os dias</span></div>
    ${ESC_ITENS.map((q,i)=>`<div class="item"><p><b>${i+1}.</b> ${q}</p>
      <div class="opts" data-i="${i}">${ESC_OPC.map(([v,l])=>`<button class="opt ${S.esc[i]===Number(v)?'on':''}" data-nota="${v}"><b>${v}</b>${l}</button>`).join("")}</div></div>`).join("")}
@@ -543,8 +536,6 @@ function telaEscala(){
     const i = Number(o.dataset.i), v = Number(b.dataset.nota);
     if(S.esc[i]===v) delete S.esc[i]; else S.esc[i]=v;
     render2(); });
-  $("#resp").onclick=e=>{ const v=e.target.dataset.quem; if(v){ S.escResp=v; render2(); } };
-  if($("#rel")){ $("#rel").oninput=e=>S.escRel=e.target.value; $("#horas").oninput=e=>S.escHoras=e.target.value; }
 }
 
 function telaTriagem(){
@@ -651,10 +642,9 @@ function telaResultado(){
 function cartaoEscala(){
   const {dom, respondidas} = avaliarEscala();
   if(!respondidas) return `<div class="card"><h2>Escala de Nível 1 do DSM-5</h2><p class="hint" style="margin:0">Não foi respondida nesta avaliação.</p></div>`;
-  const quem = S.escResp==="informante"? `informante${S.escRel?` (${esc(S.escRel)})`:""}` : "paciente";
   return `<div class="card">
    <h2>Escala de Nível 1 do DSM-5</h2>
-   <p class="ref">Respondida por ${quem} · ${respondidas} de ${ESC_ITENS.length} itens · limites na p. 735</p>
+   <p class="ref">Preenchida pela psicóloga · ${respondidas} de ${ESC_ITENS.length} itens · limites na p. 735</p>
    ${dom.map(d=>{
      const cls = d.maior===null? "na" : !d.acima? "ok" : (d.r==="VI"||d.r==="VII")? "risk" : "up";
      const rot = d.maior===null? "Sem resposta" : d.acima? "Investigar" : "Abaixo do limite";
@@ -673,9 +663,8 @@ function relatorio(lista){
   if(temRisco()) L.push("", "ALERTA: sinais de ideação suicida ou autolesão. Avaliação de risco indicada.");
   const ae = avaliarEscala();
   if(ae.respondidas){
-    const quem = S.escResp==="informante"? `informante${S.escRel?` (${S.escRel})`:""}` : "paciente";
     const acima = ae.dom.filter(d=>d.acima), sem = ae.dom.filter(d=>d.maior===null);
-    L.push("", `Escala Transversal de Sintomas de Nível 1 do DSM-5 (respondida por ${quem}; ${ae.respondidas}/${ESC_ITENS.length} itens):`);
+    L.push("", `Escala Transversal de Sintomas de Nível 1 do DSM-5 (preenchida pela psicóloga; ${ae.respondidas}/${ESC_ITENS.length} itens):`);
     L.push(acima.length? `   - Acima do limite: ${acima.map(d=>`${d.nome} (nota ${d.maior})`).join("; ")}` : "   - Nenhum domínio acima do limite.");
     if(sem.length) L.push(`   - Sem resposta: ${sem.map(d=>d.nome).join(", ")}`);
   }

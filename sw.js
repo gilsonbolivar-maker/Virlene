@@ -1,6 +1,6 @@
 /* Guarda o programa no aparelho para abrir sem internet.
    Ao publicar uma versão nova, aumente o número abaixo. */
-const VERSAO = "anamnese-v2";
+const VERSAO = "anamnese-v3";
 const ARQUIVOS = ["./", "./index.html", "./manifest.json",
   "./icons/icon-192.png", "./icons/icon-512.png", "./icons/maskable-512.png", "./icons/apple-touch-icon.png"];
 
